@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: 'Roboto', 'Helvetica Neue', sans-serif;
-            background-color: white;
+            background-color: #f5f4ef;
             margin: 0;
             padding: 0;
             height: 100vh;
@@ -22,6 +22,7 @@
             width: 100%;
             margin: auto;
             overflow: hidden;
+            background-color: #f5f4ef;
         }
         .chat-messages {
             flex: 1;
@@ -29,13 +30,14 @@
             overflow-y: auto;
             font-size: 16px;
             line-height: 1.6;
+            background-color: #f5f4ef;
         }
         .message {
             margin-bottom: 15px;
             word-wrap: break-word;
         }
         .message-content {
-            background-color: #f0f0f0;
+            background-color: #f5f4ef; /* 改变消息内容的背景色 */
             padding: 10px 14px;
             border-radius: 4px;
             color: #333;
@@ -46,6 +48,22 @@
         .user-message {
             text-align: right;
         }
+        .ai-message {
+            display: flex;
+            align-items: flex-start;
+        }
+        .ai-message .message-avatar {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        .ai-message .message-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
         .ai-message .message-name {
             color: #757575;
             font-size: 14px;
@@ -54,7 +72,7 @@
         }
         .input-container {
             padding: 10px;
-            background-color: white;
+            background-color: #f5f4ef;
             display: flex;
             align-items: center;
         }
@@ -63,8 +81,8 @@
             height: 40px;
             padding: 5px 10px;
             border: none;
-            border-bottom: 1px solid #ccc;
             font-size: 16px;
+            background-color: #f5f4ef; /* 更改输入框的背景色 */
         }
         .send-button {
             width: 30px;
@@ -80,6 +98,8 @@
             justify-content: center;
             margin-left: 10px;
             transition: background-color 0.3s;
+            position: relative;
+            bottom: 4px;
         }
         .send-button:hover {
             background-color: #333;
@@ -117,14 +137,26 @@
                 // Append AI message
                 const aiMessage = document.createElement('div');
                 aiMessage.className = `message ai-message`;
+                
+                const messageAvatar = document.createElement('div');
+                messageAvatar.className = 'message-avatar';
+                const avatarImg = document.createElement('img');
+                avatarImg.src = 'https://img.api.aa1.cn/2024/11/08/37a34444112ea.png';
+                avatarImg.alt = 'AI Assistant';
+                messageAvatar.appendChild(avatarImg);
+                aiMessage.appendChild(messageAvatar);
+
+                const messageContentContainer = document.createElement('div');
                 const messageName = document.createElement('span');
                 messageName.className = 'message-name';
                 messageName.textContent = 'Claude-3.5-sonnet:';
-                aiMessage.appendChild(messageName);
-                
+                messageContentContainer.appendChild(messageName);
+
                 const messageContent = document.createElement('div');
                 messageContent.className = 'message-content';
-                aiMessage.appendChild(messageContent);
+                messageContentContainer.appendChild(messageContent);
+                aiMessage.appendChild(messageContentContainer);
+
                 outputBox.appendChild(aiMessage);
 
                 for await (const part of response) {
