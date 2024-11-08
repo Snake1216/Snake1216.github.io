@@ -1,19 +1,71 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Chat Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        #inputBox {
+            width: 80%;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        #outputBox {
+            width: 80%;
+            height: 300px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: scroll;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+        }
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
 <body>
+    <textarea id="inputBox" placeholder="在这里输入你的问题或内容..."></textarea>
+    <div id="outputBox"></div>
+    <button onclick="streamClaudeResponse()">发送</button>
+
     <script src="https://js.puter.com/v2/"></script>
     <script>
         async function streamClaudeResponse() {
+            // 获取用户输入
+            const inputContent = document.getElementById('inputBox').value;
+            if (!inputContent) {
+                alert('请输入内容');
+                return;
+            }
+
+            // 清空输入框
+            document.getElementById('inputBox').value = '';
+
+            // 获取输出框并清空之前的内容
+            const outputBox = document.getElementById('outputBox');
+            outputBox.textContent = '';
+
             const response = await puter.ai.chat(
-                "your dog", 
+                inputContent, 
                 {model: 'claude-3-5-sonnet', stream: true}
             );
             
             for await (const part of response) {
-                puter.print(part?.text);
+                // 逐步添加响应到输出框
+                outputBox.textContent += part?.text;
+                // 确保输出框滚动到底部
+                outputBox.scrollTop = outputBox.scrollHeight;
             }
         }
-
-        streamClaudeResponse();
     </script>
 </body>
 </html>
