@@ -3,69 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claude Chat Interface</title>
+    <title>AI Chat Interface</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Roboto', 'Helvetica Neue', sans-serif;
+            background-color: white;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            align-items: center;
+        }
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            max-width: 600px;
+            width: 100%;
+            margin: auto;
+            overflow: hidden;
+        }
+        .chat-messages {
+            flex: 1;
             padding: 20px;
+            overflow-y: auto;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .message {
+            margin-bottom: 15px;
+        }
+        .message-content {
+            background-color: #f0f0f0;
+            padding: 10px 14px;
+            border-radius: 4px;
+            color: #333;
+            display: inline-block;
+            max-width: 80%;
+        }
+        .user-message {
+            text-align: right;
+        }
+        .ai-message .message-name {
+            color: #757575;
+            font-size: 14px;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .input-container {
+            padding: 10px;
+            background-color: white;
+            display: flex;
         }
         #inputBox {
-            width: 80%;
-            padding: 10px;
-            margin-bottom: 10px;
+            flex-grow: 1;
+            height: 40px;
+            padding: 5px 10px;
+            border: none;
+            border-bottom: 1px solid #ccc;
+            font-size: 16px;
+            background-color: white;
         }
-        #outputBox {
-            width: 80%;
-            height: 300px;
-            border: 1px solid #ccc;
-            padding: 10px;
-            overflow-y: scroll;
-            margin-bottom: 10px;
-            white-space: pre-wrap;
-        }
-        button {
-            padding: 10px 20px;
+        .send-button {
+            width: 30px;
+            height: 30px;
+            background-color: black;
+            color: white;
+            border: none;
+            border-radius: 50%;
             cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 10px;
+            transition: background-color 0.3s;
+        }
+        .send-button:hover {
+            background-color: #333;
         }
     </style>
 </head>
 <body>
-    <textarea id="inputBox" placeholder="在这里输入你的问题或内容..."></textarea>
-    <div id="outputBox"></div>
-    <button onclick="streamClaudeResponse()">发送</button>
+    <div class="chat-container">
+        <div class="chat-messages" id="outputBox"></div>
+        <div class="input-container">
+            <input id="inputBox" type="text" placeholder="Type your message here...">
+            <button class="send-button" onclick="streamClaudeResponse()">↗</button>
+        </div>
+    </div>
 
     <script src="https://js.puter.com/v2/"></script>
     <script>
         async function streamClaudeResponse() {
-            // 获取用户输入
             const inputContent = document.getElementById('inputBox').value;
-            if (!inputContent) {
-                alert('请输入内容');
+            if (!inputContent.trim()) {
+                alert('Please enter a message');
                 return;
             }
 
-            // 清空输入框
-            document.getElementById('inputBox').value = '';
-
-            // 获取输出框并清空之前的内容
             const outputBox = document.getElementById('outputBox');
-            outputBox.textContent = '';
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user-message';
+            userMessage.innerHTML = `<div class="message-content">${inputContent}</div>`;
+            outputBox.appendChild(userMessage);
+
+            document.getElementById('inputBox').value = '';
 
             const response = await puter.ai.chat(
                 inputContent, 
                 {model: 'claude-3-5-sonnet', stream: true}
             );
-            
+
+            const aiMessage = document.createElement('div');
+            aiMessage.className = 'message ai-message';
+            aiMessage.innerHTML = `<span class="message-name">Claude-3.5-sonnet:</span><div class="message-content"></div>`;
+            outputBox.appendChild(aiMessage);
+
+            const aiMessageContent = aiMessage.querySelector('.message-content');
             for await (const part of response) {
-                // 逐步添加响应到输出框
-                outputBox.textContent += part?.text;
-                // 确保输出框滚动到底部
+                aiMessageContent.textContent += part?.text;
+                // Ensure the chat scrolls to the bottom
                 outputBox.scrollTop = outputBox.scrollHeight;
             }
         }
+
+        // Add Enter key functionality
+        document.getElementById('inputBox').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                streamClaudeResponse();
+            }
+        });
     </script>
 </body>
 </html>
