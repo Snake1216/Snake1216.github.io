@@ -32,12 +32,20 @@
             line-height: 1.6;
             background-color: #f5f4ef;
         }
+        /* 隐藏滚动条 */
+        .chat-messages::-webkit-scrollbar {
+            display: none;
+        }
+        .chat-messages {
+            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none; /* Firefox */
+        }
         .message {
             margin-bottom: 15px;
             word-wrap: break-word;
         }
         .message-content {
-            background-color: #f5f4ef; /* 改变消息内容的背景色 */
+            background-color: #f5f4ef;
             padding: 10px 14px;
             border-radius: 4px;
             color: #333;
@@ -82,7 +90,7 @@
             padding: 5px 10px;
             border: none;
             font-size: 16px;
-            background-color: #f5f4ef; /* 更改输入框的背景色 */
+            background-color: #f5f4ef;
         }
         .send-button {
             width: 30px;
@@ -104,7 +112,93 @@
         .send-button:hover {
             background-color: #333;
         }
+        /* Highlight.js */
+        .hljs {
+            display: block;
+            overflow-x: auto;
+            padding: 0.5em;
+            background: #f5f4ef;
+            color: #000;
+        }
+        .hljs-comment, .hljs-quote {
+            color: #998;
+            font-style: italic;
+        }
+        .hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-type, .hljs-addition {
+            color: #8959a8;
+            font-weight: bold;
+        }
+        .hljs-string, .hljs-number, .hljs-regexp, .hljs-attribute, .hljs-variable, .hljs-template-variable, .hljs-link, .hljs-symbol, .hljs-bullet {
+            color: #e96900;
+        }
+        .hljs-meta, .hljs-subst {
+            color: #4e9a06;
+        }
+        .hljs-built_in, .hljs-builtin-name, .hljs-name {
+            color: #268bd2;
+        }
+        .hljs-class .hljs-title {
+            color: #75507b;
+        }
+        .hljs-section {
+            color: #66D9EF;
+            font-weight: bold;
+        }
+        .hljs-symbol, .hljs-bullet, .hljs-link {
+            color: #960050;
+        }
+        .hljs-deletion {
+            color: #dc322f;
+        }
+        .hljs-formula {
+            background: #eee8d5;
+        }
+        .hljs-attr, .hljs-variable, .hljs-template-tag, .hljs-type, .hljs-selector-attribute, .hljs-selector-pseudo, .hljs-number, .hljs-addition, .hljs-deletion {
+            color: #cb4b16;
+        }
+        .hljs-title, .hljs-section {
+            color: #b58900;
+            font-weight: bold;
+        }
+        .hljs-doctag, .hljs-title, .hljs-section, .hljs-strong {
+            font-weight: bold;
+        }
+        .hljs-emphasis {
+            font-style: italic;
+        }
+        /* Line numbers */
+        .line-numbers-rows {
+            position: absolute;
+            pointer-events: none;
+            top: 0;
+            font-size: 100%;
+            line-height: 1.5;
+            letter-spacing: -1px;
+            border-right: 1px solid #999;
+            padding-right: 10px;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        .line-numbers-rows > span {
+            pointer-events: none;
+            display: block;
+            counter-increment: linenumber;
+        }
+        .line-numbers-rows > span:before {
+            content: counter(linenumber);
+            color: #999;
+            display: block;
+            padding-right: 0.8em;
+            text-align: right;
+        }
     </style>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/languages/javascript.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/plugins/line-numbers/highlightjs-line-numbers.min.js"></script>
+    <script>hljs.highlightAll(); hljs.initLineNumbersOnLoad();</script>
 </head>
 <body>
     <div class="chat-container">
@@ -159,30 +253,50 @@
 
                 outputBox.appendChild(aiMessage);
 
+                let codeBlock = false;
+                let codeElement = null;
+
                 for await (const part of response) {
                     if (part?.text) {
                         let text = part.text;
-                        // Check if the response contains code blocks
                         if (text.includes("```")) {
                             const codeBlocks = text.split("```");
                             for (let i = 0; i < codeBlocks.length; i++) {
-                                if (i % 2 === 1) { // Odd index are code blocks
-                                    const pre = document.createElement('pre');
+                                if (i % 2 === 0 && codeBlock) { // End of code block
+                                    codeElement.textContent += codeBlocks[i];
+                                    hljs.highlightBlock(codeElement);
+                                    codeBlock = false;
+                                    codeElement = null;
+                                    messageContent.appendChild(codeElement);
+                                } else if (i % 2 === 1) { // Start of code block
+                                    codeBlock = true;
+                                    codeElement = document.createElement('pre');
                                     const code = document.createElement('code');
+                                    code.className = `language-javascript`; // Change to appropriate language
                                     code.textContent = codeBlocks[i];
-                                    pre.appendChild(code);
-                                    messageContent.appendChild(pre);
-                                } else if (codeBlocks[i].trim()) { // Even index are regular text
+                                    codeElement.appendChild(code);
+                                    messageContent.appendChild(codeElement);
+                                } else if (!codeBlock && codeBlocks[i].trim()) { // Regular text
                                     messageContent.appendChild(document.createTextNode(codeBlocks[i]));
                                 }
                             }
                         } else {
-                            messageContent.appendChild(document.createTextNode(text));
+                            if (codeBlock) {
+                                codeElement.textContent += text;
+                            } else {
+                                messageContent.appendChild(document.createTextNode(text));
+                            }
                         }
                     }
                     // Ensure chat scrolls to the bottom
                     outputBox.scrollTop = outputBox.scrollHeight;
                 }
+
+                // If the last response ended with a code block, highlight it
+                if (codeBlock) {
+                    hljs.highlightBlock(codeElement);
+                }
+
             } catch (error) {
                 console.error('An error occurred:', error);
             }
