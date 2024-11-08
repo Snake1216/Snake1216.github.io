@@ -32,6 +32,7 @@
         }
         .message {
             margin-bottom: 15px;
+            word-wrap: break-word;
         }
         .message-content {
             background-color: #f0f0f0;
@@ -40,6 +41,7 @@
             color: #333;
             display: inline-block;
             max-width: 80%;
+            white-space: pre-wrap;
         }
         .user-message {
             text-align: right;
@@ -54,6 +56,7 @@
             padding: 10px;
             background-color: white;
             display: flex;
+            align-items: center;
         }
         #inputBox {
             flex-grow: 1;
@@ -62,7 +65,6 @@
             border: none;
             border-bottom: 1px solid #ccc;
             font-size: 16px;
-            background-color: white;
         }
         .send-button {
             width: 30px;
@@ -92,45 +94,83 @@
             <button class="send-button" onclick="streamClaudeResponse()">↗</button>
         </div>
     </div>
-
     <script src="https://js.puter.com/v2/"></script>
     <script>
+        // Function to handle sending messages and receiving AI responses
         async function streamClaudeResponse() {
-            const inputContent = document.getElementById('inputBox').value;
-            if (!inputContent.trim()) {
+            const inputContent = document.getElementById('inputBox').value.trim();
+            if (!inputContent) {
                 alert('Please enter a message');
                 return;
             }
 
             const outputBox = document.getElementById('outputBox');
-            const userMessage = document.createElement('div');
-            userMessage.className = 'message user-message';
-            userMessage.innerHTML = `<div class="message-content">${inputContent}</div>`;
-            outputBox.appendChild(userMessage);
+            
+            // Append user message
+            appendMessage(outputBox, 'user-message', inputContent);
 
+            // Clear input box
             document.getElementById('inputBox').value = '';
 
-            const response = await puter.ai.chat(
-                inputContent, 
-                {model: 'claude-3-5-sonnet', stream: true}
-            );
+            try {
+                const response = await puter.ai.chat(inputContent, { model: 'claude-3-5-sonnet', stream: true });
+                // Append AI message
+                const aiMessage = document.createElement('div');
+                aiMessage.className = `message ai-message`;
+                const messageName = document.createElement('span');
+                messageName.className = 'message-name';
+                messageName.textContent = 'Claude-3.5-sonnet:';
+                aiMessage.appendChild(messageName);
+                
+                const messageContent = document.createElement('div');
+                messageContent.className = 'message-content';
+                aiMessage.appendChild(messageContent);
+                outputBox.appendChild(aiMessage);
 
-            const aiMessage = document.createElement('div');
-            aiMessage.className = 'message ai-message';
-            aiMessage.innerHTML = `<span class="message-name">Claude-3.5-sonnet:</span><div class="message-content"></div>`;
-            outputBox.appendChild(aiMessage);
-
-            const aiMessageContent = aiMessage.querySelector('.message-content');
-            for await (const part of response) {
-                aiMessageContent.textContent += part?.text;
-                // Ensure the chat scrolls to the bottom
-                outputBox.scrollTop = outputBox.scrollHeight;
+                for await (const part of response) {
+                    if (part?.text) {
+                        let text = part.text;
+                        // Check if the response contains code blocks
+                        if (text.includes("```")) {
+                            const codeBlocks = text.split("```");
+                            for (let i = 0; i < codeBlocks.length; i++) {
+                                if (i % 2 === 1) { // Odd index are code blocks
+                                    const pre = document.createElement('pre');
+                                    const code = document.createElement('code');
+                                    code.textContent = codeBlocks[i];
+                                    pre.appendChild(code);
+                                    messageContent.appendChild(pre);
+                                } else if (codeBlocks[i].trim()) { // Even index are regular text
+                                    messageContent.appendChild(document.createTextNode(codeBlocks[i]));
+                                }
+                            }
+                        } else {
+                            messageContent.appendChild(document.createTextNode(text));
+                        }
+                    }
+                    // Ensure chat scrolls to the bottom
+                    outputBox.scrollTop = outputBox.scrollHeight;
+                }
+            } catch (error) {
+                console.error('An error occurred:', error);
             }
+        }
+
+        // Helper function to append messages to chat container
+        function appendMessage(container, className, content) {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${className}`;
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageContent.textContent = content;
+            messageElement.appendChild(messageContent);
+            container.appendChild(messageElement);
         }
 
         // Add Enter key functionality
         document.getElementById('inputBox').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
+                e.preventDefault(); // Prevent the default form submission behavior
                 streamClaudeResponse();
             }
         });
